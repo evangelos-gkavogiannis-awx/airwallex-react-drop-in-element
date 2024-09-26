@@ -4,7 +4,9 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 It integrates with Airwallex [Drop-in Element](https://www.airwallex.com/docs/payments__drop-in-element)
 
+
 **How to run the app**
+
 1. Create an `.env` on the home directory
 2. Hit the `api/v1/authentication/login` endpoint and create a new access token
 3. Update the `.env` file with AIRWALLEX_BEARER_TOKEN
