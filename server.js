@@ -44,6 +44,40 @@ app.post('/create-payment-intent', async (req, res) => {
     }
 });
 
+
+// endpoint to confirm a PaymentIntent using Bacs Direct Debit
+app.post('/confirm-payment-intent', async (req, res) => {
+    const { intent_id, bank_name } = req.body;
+
+    try {
+        const response = await axios.post(`https://api-demo.airwallex.com/api/v1/pa/payment_intents/${intent_id}/confirm`, {
+            request_id: `${Date.now()}`, // Unique request ID
+            payment_method: {
+                type: 'bacs_direct_debit',
+                bacs_direct_debit: {
+                    bank_name: 'mock' // Bank name from TrueLayer
+                }
+            },
+            payment_method_options: {
+                bacs_direct_debit: {
+                    verification_method: 'truelayer' // TrueLayer verification
+                }
+            }
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.AIRWALLEX_BEARER_TOKEN}`
+            }
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error confirming PaymentIntent:', error);
+        res.status(500).json({ error: 'Failed to confirm PaymentIntent' });
+    }
+});
+
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
