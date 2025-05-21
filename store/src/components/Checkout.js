@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext, createContext } from 'react';
 import { CheckoutContext } from './CheckoutContext';
-import { loadAirwallex, createElement } from 'airwallex-payment-elements';
+import { init, createElement } from '@airwallex/components-sdk';
+
 
 const Checkout = () => {
 
@@ -11,42 +12,54 @@ const Checkout = () => {
  /*
  placing the initiliazation code inside useEffect guarantees that it will run only after the component is mounted
  */
-  useEffect(() => {
-    const { clientSecret, intentId } = checkoutData;
+ useEffect(() => {
+  const { clientSecret, intentId } = checkoutData;
 
-    if (!intentId || !clientSecret) {
-      setErrorMessage('Payment initialization failed. Please try again.');
-      return;
-    }
+  if (!intentId || !clientSecret) {
+    setErrorMessage('Payment initialization failed. Please try again.');
+    return;
+  }
 
-    //Load airwallex
-    loadAirwallex({
-      env: 'demo', // Setup which Airwallex env('demo' | 'prod') to integrate with
-      origin: window.location.origin, // Set up your event target to receive the browser events message
-    }).then(() => {
-      const element = createElement('dropIn', {
-        // Required, dropIn use intent Id, client_secret and currency to prepare checkout
+  const initAirwallex = async () => {
+    try {
+      // 1. Initialize Airwallex (only once)
+      if (!window.__airwallexInitialized) {
+        await init({
+          env: 'demo',
+          origin: window.location.origin,
+          locale: 'en',
+          enabledElements: ['payments'], // Make sure 'payments' is included
+        });
+        window.__airwallexInitialized = true;
+        console.log('Airwallex initialized');
+      }
+
+      // 2. Create the Drop-in element
+      const element = await createElement('dropIn', {
         intent_id: intentId,
         client_secret: clientSecret,
         currency: 'USD',
-      })
+      });
+
+      if (!element || typeof element.mount !== 'function') {
+        console.error('Failed to create dropIn element:', element);
+        setErrorMessage('Drop-in could not be created. Check your intent details or SDK setup.');
+        return;
+      }
 
       element.mount('dropIn');
 
-      element.on('success', (event) => {
-        alert('Payment was successful!');
-      });
+      element.on('success', () => alert('Payment was successful!'));
+      element.on('error', () => alert('Payment failed. Please try again.'));
+      element.on('ready', (e) => console.log('Drop-in ready:', e.detail));
+    } catch (err) {
+      console.error('Airwallex init error:', err);
+      setErrorMessage('Error initializing Airwallex');
+    }
+  };
 
-      element.on('error', (event) => {
-        alert('Payment failed. Please try again.');
-      });
-
-      element.on('ready', (event) => {
-        console.log('Drop-in Element is ready:', event.detail);
-      });
-    })
-
-  }, [checkoutData])
+  initAirwallex();
+}, [checkoutData]);
 
 
   return (
